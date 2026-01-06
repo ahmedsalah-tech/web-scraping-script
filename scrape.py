@@ -6,7 +6,6 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-# ---------------- CONFIG ----------------
 
 BASE_URL = "https://laravel.com"
 START_URL = "https://laravel.com/docs/12.x"
@@ -24,7 +23,6 @@ USER_AGENT = (
     "Chrome/120.0.0.0 Safari/537.36"
 )
 
-# ---------------------------------------
 
 os.makedirs(PAGES_DIR, exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
@@ -91,7 +89,6 @@ def patch_navigation(soup: BeautifulSoup):
             a["href"] = page_filename(href)
 
 
-# ---------------- MAIN ------------------
 
 with sync_playwright() as p:
     browser = p.chromium.launch(
