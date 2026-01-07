@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 # ---------------- CONFIG ----------------
 
 BASE_URL = "https://laravel.com"
-START_URL = "https://laravel.com/docs/11.x"
+START_URL = "https://laravel.com/docs/12.x"
 
 OUTPUT_DIR = "site"
 PAGES_DIR = os.path.join(OUTPUT_DIR, "pages")
@@ -91,7 +91,10 @@ def patch_navigation(soup: BeautifulSoup):
 # ---------------- MAIN ------------------
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
+    browser = p.chromium.launch(
+        executable_path="C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+        headless=True
+    )
     page = browser.new_page(user_agent=USER_AGENT)
 
     print("Loading index...")
