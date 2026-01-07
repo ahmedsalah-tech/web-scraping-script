@@ -32,6 +32,9 @@ os.makedirs(ASSETS_DIR, exist_ok=True)
 downloaded_assets: dict[str, str] = {}
 downloaded_pages: set[str] = set()
 
+def page_already_downloaded(url: str) -> bool:
+    return os.path.exists(os.path.join(PAGES_DIR, page_filename(url)))
+
 
 def hash_filename(url: str) -> str:
     ext = os.path.splitext(urlparse(url).path)[1]
@@ -107,23 +110,32 @@ with sync_playwright() as p:
     )
 
     for url in links:
-        if url in downloaded_pages:
+        filename = page_filename(url)
+        out_path = os.path.join(PAGES_DIR, filename)
+
+        if os.path.exists(out_path):
+            print(f"Skipping (already downloaded): {url}")
             continue
 
-        downloaded_pages.add(url)
         print(f"Scraping: {url}")
 
-        page.goto(url)
-        page.wait_for_load_state("networkidle")
-        time.sleep(REQUEST_DELAY_SEC)
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_load_state("networkidle", timeout=60000)
+            time.sleep(REQUEST_DELAY_SEC)
+
+        except Exception as e:
+            print(f"Failed to load {url}: {e}")
+
+            with open("failed_pages.log", "a", encoding="utf-8") as log:
+                log.write(url + "\n")
+
+            continue
 
         soup = BeautifulSoup(page.content(), "html.parser")
 
         patch_assets(soup, url)
         patch_navigation(soup)
-
-        filename = page_filename(url)
-        out_path = os.path.join(PAGES_DIR, filename)
 
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(str(soup))
