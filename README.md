@@ -1,73 +1,51 @@
-# Web Scraping
+# Offline Documentation Scraper
 
-This small project scrapes the Laravel documentation site by default.
+This script downloads a documentation website for offline browsing. It uses Playwright to render JavaScript-heavy pages and BeautifulSoup to parse the HTML, rewrite links, and save assets locally.
 
-If you'd like to scrape a different site, feel free to fork this repository and change the base URL used by the scraper. Also update any Laravel-specific paths to their corresponding paths on the new site.
+## How It Works
 
-Quick notes:
+1. **URL Input**: The script prompts you to enter the starting URL of the documentation you want to download.
+2. **Link Discovery**: It loads the starting page and discovers all unique documentation links within the site's navigation and body.
+3. **Scraping**: It visits each discovered link, saving the page content.
+4. **Asset Handling**: It downloads all referenced assets (CSS, JS, images) and saves them to a local `site/assets` directory.
+5. **Link Patching**: It rewrites all links in the saved HTML files to point to the local downloaded pages and assets, allowing for complete offline navigation.
 
-Usage
-Run the scraper with Python:
+The final static site is saved in the `site/` directory.
 
-```powershell
-python scrape.py
-```
+## Requirements
 
-Contributing
-Any changes are welcome — fork the repo, change the base URL and any related paths, and open a PR if you'd like to contribute improvements.
+* Python 3.10+
+* `requests`
+* `beautifulsoup4`
+* `playwright`
 
-License
-This repository doesn't include a license file. Add one if you plan to distribute or allow contributions under a specific license.
+## Setup
 
-## Install
+1. **Install Python packages**:
 
-Install dependencies with pip:
+    ```powershell
+    pip install requests beautifulsoup4 playwright
+    ```
 
-```powershell
-python -m pip install --upgrade pip
-python -m pip install beautifulsoup4 playwright requests uvicorn
+2. **Install Playwright browsers**:
+    The script uses Playwright to control a headless browser. You must install the necessary browser binaries by running the following command:
 
-# If you use Playwright, install browser binaries as well:
-python -m playwright install
-```
+    ```powershell
+    python -m playwright install
+    ```
 
-Or install from the project metadata:
-
-```powershell
-python -m pip install .
-```
+    This will download the default browsers (like Chromium) that Playwright uses to render pages.
 
 ## Usage
 
-Run the scraper with Python:
+1. Run the script from your terminal:
 
-```powershell
-python scrape.py
-```
+    ```powershell
+    python scrape.py
+    ```
 
-## Browser executable
+2. When prompted, enter the full starting URL for the documentation you wish to download (e.g., `https://laravel.com/docs/11.x/installation`).
 
-This project does not use Playwright's headless browser by default. Instead, it expects you to provide (or change) a browser executable path to one you prefer. Edit `scrape.py` and look for where the browser is launched (search for `launch(`, `executable_path`, or `executablePath`).
+3. The script will begin scraping the site. The output will be saved in the `site/` directory.
 
-Set the executable path to your preferred browser binary and ensure headless mode is disabled. Example (Playwright, Python):
-
-```python
-from playwright.sync_api import sync_playwright
-
-with sync_playwright() as p:
-	# Change the path below to the browser executable you want to use
-	browser = p.chromium.launch(headless=False, executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe")
-	page = browser.new_page()
-	page.goto("https://laravel.com/docs")
-	# ... your scraping logic
-
-	browser.close()
-```
-
-Notes:
-
-- Depending on which Playwright API you use (sync/async) or which language binding, the parameter name may be `executable_path` or `executablePath` — search for either.
-- Ensure `headless=False` (or omit headless) so the browser runs in headed mode.
-- If you prefer to use the browser that Playwright installed, you can omit `executable_path` and let Playwright launch its managed browser; this project defaults to a non-headless, custom-executable setup.
-
-
+4. Once finished, open `site/pages/index.html` in your browser to view the offline documentation.

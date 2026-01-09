@@ -7,8 +7,22 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
 
-BASE_URL = "https://laravel.com"
-START_URL = "https://laravel.com/docs/12.x"
+# Prompt for URL
+try:
+    start_url = input("Enter the starting documentation URL: ")
+    if not start_url.startswith("http"):
+        print("Error: Please enter a valid URL starting with http or https.")
+        exit(1)
+except (KeyboardInterrupt, EOFError):
+    print("\nExiting.")
+    exit(0)
+
+# Parse URL for base and path
+parsed_url = urlparse(start_url)
+BASE_URL = f"{parsed_url.scheme}://{parsed_url.netloc}"
+DOCS_BASE_PATH = parsed_url.path.rstrip("/")
+START_URL = start_url
+
 
 OUTPUT_DIR = "site"
 PAGES_DIR = os.path.join(OUTPUT_DIR, "pages")
@@ -61,10 +75,33 @@ def save_asset(url: str) -> str | None:
 
 
 def page_filename(url: str) -> str:
-    slug = url.rstrip("/").split("/")[-1]
-    return (slug or "index") + ".html"
+    parsed = urlparse(url)
+    path = parsed.path
 
+    # Normalize path
+    path = path.rstrip("/")
 
+    # Root / docs base path -> index.html
+    if not path or path == "/" or path == DOCS_BASE_PATH:
+        return "index.html"
+
+    else:
+        rel_path = path.lstrip("/")
+
+    # Fallback to index if nothing remains
+    if not rel_path:
+        rel_path = "index"
+
+    # Replace directory separators to preserve structure in a flat directory
+    base_name = rel_path.replace("/", "_")
+
+    # If this URL is on a different host, prefix with the host to avoid collisions
+    base_netloc = urlparse(BASE_URL).netloc
+    if parsed.netloc and parsed.netloc != base_netloc:
+        safe_netloc = parsed.netloc.replace(":", "_").replace(".", "_")
+        base_name = f"{safe_netloc}_{base_name}"
+
+    return base_name + ".html"
 def patch_assets(soup: BeautifulSoup, page_url: str):
     for tag, attr in [("img", "src"), ("link", "href"), ("script", "src")]:
         for el in soup.find_all(tag):
@@ -78,21 +115,24 @@ def patch_assets(soup: BeautifulSoup, page_url: str):
                 el[attr] = local
 
 
-def patch_navigation(soup: BeautifulSoup):
+def patch_navigation(soup: BeautifulSoup, base_url: str, docs_base_path: str):
     for a in soup.find_all("a", href=True):
-        href = a["href"]
+        href = a.get("href")
+        if not href:
+            continue
 
-        if href.startswith("/docs/"):
-            a["href"] = page_filename(href)
+        # Resolve the link to an absolute URL
+        absolute_url = urljoin(base_url, href)
 
-        elif href.startswith(BASE_URL + "/docs/"):
-            a["href"] = page_filename(href)
+        # Check if it's a documentation link
+        if absolute_url.startswith(base_url + docs_base_path):
+            # Rewrite the link to point to the local file
+            a["href"] = page_filename(absolute_url)
 
 
 
 with sync_playwright() as p:
     browser = p.chromium.launch(
-        executable_path="C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
         headless=True
     )
     page = browser.new_page(user_agent=USER_AGENT)
@@ -101,10 +141,19 @@ with sync_playwright() as p:
     page.goto(START_URL)
     page.wait_for_load_state("networkidle")
 
-    links = page.eval_on_selector_all(
-        "nav a[href^='/docs']",
-        "els => [...new Set(els.map(e => e.href))]"
-    )
+    # Dynamic selector for documentation links
+    nav_selector = f"nav a[href^='{DOCS_BASE_PATH}'], nav a[href^='{BASE_URL}{DOCS_BASE_PATH}']"
+    body_selector = f"body a[href^='{DOCS_BASE_PATH}'], body a[href^='{BASE_URL}{DOCS_BASE_PATH}']"
+
+    # Discover links in both nav and body
+    nav_links = page.eval_on_selector_all(nav_selector, "els => [...new Set(els.map(e => e.href))]")
+    body_links = page.eval_on_selector_all(body_selector, "els => [...new Set(els.map(e => e.href))]")
+    
+    links = sorted(list(set(nav_links + body_links)))
+
+    if not links:
+        print("No documentation links found. Exiting.")
+        exit(1)
 
     for url in links:
         filename = page_filename(url)
@@ -132,7 +181,7 @@ with sync_playwright() as p:
         soup = BeautifulSoup(page.content(), "html.parser")
 
         patch_assets(soup, url)
-        patch_navigation(soup)
+        patch_navigation(soup, BASE_URL, DOCS_BASE_PATH)
 
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(str(soup))

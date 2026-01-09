@@ -13,3 +13,4 @@ wheels/
 site
 .github
 *.log
+_features.md
