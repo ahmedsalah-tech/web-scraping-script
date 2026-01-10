@@ -36,6 +36,31 @@ The final static site is saved in the `site/` directory.
 
     This will download the default browsers (like Chromium) that Playwright uses to render pages.
 
+## Configuration
+
+### Browser
+
+By default, the script is configured to use a specific local installation of Brave Browser. If you want to use Playwright's built-in browser, you must edit `scrape.py`.
+
+Locate the following lines in `scrape.py`:
+
+```python
+    browser = p.chromium.launch(
+        executable_path="C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+        headless=True
+    )
+```
+
+To use the default browser, remove the `executable_path` line:
+
+```python
+    browser = p.chromium.launch(
+        headless=True
+    )
+```
+
+Ensure you have run `python -m playwright install` so that the default browser is available.
+
 ## Usage
 
 1. Run the script from your terminal:
