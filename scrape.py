@@ -139,8 +139,8 @@ with sync_playwright() as p:
     page = browser.new_page(user_agent=USER_AGENT)
 
     print("Loading index...")
-    page.goto(START_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(START_URL, timeout=60000)
+    page.wait_for_load_state("load")
 
     # Dynamic selector for documentation links
     nav_selector = f"nav a[href^='{DOCS_BASE_PATH}'], nav a[href^='{BASE_URL}{DOCS_BASE_PATH}']"
