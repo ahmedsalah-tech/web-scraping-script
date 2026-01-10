@@ -132,7 +132,8 @@ def patch_navigation(soup: BeautifulSoup, base_url: str, docs_base_path: str):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(
+    browser = p.chromium.launch(       
+        executable_path="C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
         headless=True
     )
     page = browser.new_page(user_agent=USER_AGENT)
