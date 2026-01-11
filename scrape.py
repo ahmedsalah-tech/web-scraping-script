@@ -139,7 +139,7 @@ with sync_playwright() as p:
     page = browser.new_page(user_agent=USER_AGENT)
 
     print("Loading index...")
-    page.goto(START_URL, timeout=60000)
+    page.goto(START_URL, timeout=120000)
     page.wait_for_load_state("load")
 
     # Dynamic selector for documentation links
@@ -167,8 +167,7 @@ with sync_playwright() as p:
         print(f"Scraping: {url}")
 
         try:
-            page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_load_state("networkidle", timeout=60000)
+            page.goto(url, wait_until="load", timeout=120000)
             time.sleep(REQUEST_DELAY_SEC)
 
         except Exception as e:
