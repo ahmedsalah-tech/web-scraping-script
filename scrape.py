@@ -58,7 +58,8 @@ def save_asset(url: str) -> str | None:
         return downloaded_assets[url]
 
     try:
-        r = requests.get(url, timeout=20)
+        headers = {"User-Agent": USER_AGENT}
+        r = requests.get(url, headers=headers, timeout=20)
         r.raise_for_status()
     except Exception:
         return None
@@ -103,6 +104,14 @@ def page_filename(url: str) -> str:
 
     return base_name + ".html"
 def patch_assets(soup: BeautifulSoup, page_url: str):
+    # Remove Next.js/React hydration scripts to prevent client-side errors
+    # (The page is already rendered by Playwright, so we don't need hydration)
+    for script in soup.find_all("script"):
+        src = script.get("src")
+        if src and ("_next/static" in src or "static/chunks" in src):
+            script.decompose()
+            continue
+
     for tag, attr in [("img", "src"), ("link", "href"), ("script", "src")]:
         for el in soup.find_all(tag):
             src = el.get(attr)
@@ -113,6 +122,8 @@ def patch_assets(soup: BeautifulSoup, page_url: str):
             local = save_asset(full_url)
             if local:
                 el[attr] = local
+            else:
+                el[attr] = full_url
 
 
 def patch_navigation(soup: BeautifulSoup, base_url: str, docs_base_path: str):
